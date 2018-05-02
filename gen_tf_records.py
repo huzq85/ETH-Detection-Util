@@ -7,26 +7,31 @@ import tensorflow as tf
 
 from object_detection.utils import dataset_util
 
+'''
+Usage:
+    python gen_tf_records.py --logtostderr \
+    --annotation_file="${ANNOTATION_FILE}"
+    --image_directory="${IMAGE_DIRECTORY}"
+'''
+
 
 flags = tf.app.flags
-flags.DEFINE_string('output_path', '', 'Path to output TFRecord')
+flags.DEFINE_string('annotation_file', '','Path to the annotation file')
+flags.DEFINE_string('image_directory', '','Directory of the images')
+flags.DEFINE_string('output_directory','','Directory of TF records')
 FLAGS = flags.FLAGS
 
 
 # Read annotation file first, and then read the image according to the
 # annotation file.
-def create_tf_example(image_dir, file_name, anno_val):
+def create_tf_example(image_path, anno_val):
     '''
     Args:
         anno_key: Single image file name
         anno_val: Annotation for the file
     '''
-    # TODO(user): Populate the following variables from your example.
-    # Need to read the images
-    # print(file_name, anno_val)
     encoded_image_data = None
-    image_path = os.path.join(image_dir, file_name)
-    print(image_path)
+    print('Processing: ', image_path)
     with tf.gfile.GFile(image_path, 'rb') as read_image:
         encoded_image_data = read_image.read()
     encode_img_io = io.BytesIO(encoded_image_data)
@@ -35,7 +40,7 @@ def create_tf_example(image_dir, file_name, anno_val):
     
     height = int(img.shape[0]) # Image height
     width = int(img.shape[1]) # Image width
-    filename = file_name # Filename of the image. Empty if image is not from file
+    filename = image_path.split('/')[-1] # Filename of the image. Empty if image is not from file
     image_format = 'png'.encode('utf8') # b'jpeg' or b'png'
     
     xmins = []
@@ -59,7 +64,7 @@ def create_tf_example(image_dir, file_name, anno_val):
              # (1 per box)
         classes_text.append('Person'.encode('utf8')) # List of string class name of bounding box (1 per box)
         classes.append(class_cate) # List of integer class id of bounding box (1 per box)
-    print(height, width, xmins, xmaxs, ymins, ymaxs, classes_text, classes)
+    # print(height, width, xmins, xmaxs, ymins, ymaxs, classes_text, classes)
 
     tf_example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': dataset_util.int64_feature(height),
@@ -98,19 +103,20 @@ def read_annotations(f_path):
         
   # Process the annotation file
 def main(_):
-    train_output_path = os.path.join(FLAGS.output_path, 'train.record')
+    assert FLAGS.annotation_file, '"Annotation file missing"'
+    assert FLAGS.image_directory, '"Image directory missing"'
+    FLAGS.output_directory = os.path.abspath(os.path.join(str(FLAGS.image_directory), os.pardir))
+    train_output_path = os.path.join(FLAGS.output_directory, 'train.record')
     writer = tf.python_io.TFRecordWriter(train_output_path)
-  
-    # TODO(user): Write code to read in your dataset to examples variable
-    anno_list = read_annotations(r'F:\81-DataSets\BAHNHOF\refined.idl')
-
-    for key, val in anno_list.items():
-        tf_example = create_tf_example(r'F:\81-DataSets\BAHNHOF\image', key, val)
-        print(tf_example)
+    
+    anno_list = read_annotations(FLAGS.annotation_file)
+    for file_name, anno_val in anno_list.items():
+        img_dir = str(FLAGS.image_directory)
+        img_path = os.path.join(img_dir, file_name)
+        print(img_path)
+        tf_example = create_tf_example(img_path, anno_val)
         writer.write(tf_example.SerializeToString())
     writer.close()
-    
-    tf.logging.info('Finished writing')
 
 
 if __name__ == '__main__':
