@@ -41,7 +41,8 @@ def create_tf_example(image_path, anno_val):
     height = int(img.shape[0]) # Image height
     width = int(img.shape[1]) # Image width
     filename = image_path.split('/')[-1] # Filename of the image. Empty if image is not from file
-    image_format = 'png'.encode('utf8') # b'jpeg' or b'png'
+    # image_format = 'png'.encode('utf8') # b'jpeg' or b'png'
+    image_format = filename.split('.')[-1].encode('utf8')
     
     xmins = []
     xmaxs = []
@@ -90,7 +91,10 @@ def read_annotations(f_path):
     lines = f_read.readlines()
     for line in lines:
         file_name_from_anno = line.split(':')[0] # '"left/image_00000986.png"'
-        file_name_from_anno = file_name_from_anno[1:-1] # To remove the '"' at the beginning and the end of the string
+        if file_name_from_anno.startswith('"') and file_name_from_anno.endswith('"'):
+            file_name_from_anno = file_name_from_anno[1:-1] # To remove the '"' at the beginning and the end of the string
+        if '/' in file_name_from_anno:
+            file_name_from_anno = file_name_from_anno.split('/')[-1]
         annos_info = line[line.index(':')+1:-2] # annotation info for every image, 
         # drop the last character ';' or '.' in every line
         # [' (212, 209, 238, 270)', '-1, (233, 201, 260, 284)', '-1, (287, 215, 305, 260)', '-1']
