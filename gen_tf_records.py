@@ -136,11 +136,13 @@ def divide_dataset(file_list, img_dir, train_folder, test_folder, ratio):
         src_file = os.path.join(img_dir, file_list[i])
         dst_file = os.path.join(train_folder, file_list[i])
         if os.path.exists(src_file):
+            print('Copying: ', src_file + ' --> ' + dst_file)
             shutil.copyfile(src_file, dst_file)
     for i in range(training_number+1, file_number):
         src_file = os.path.join(img_dir, file_list[i])
         dst_file = os.path.join(test_folder, file_list[i])
         if os.path.exists(src_file):
+            print('Copying: ', src_file + ' --> ' + dst_file)
             shutil.copyfile(src_file, dst_file)
     # Returning the tuple consists of training set and testing set
     return (file_list[0: training_number+1], file_list[training_number+1: file_number])
