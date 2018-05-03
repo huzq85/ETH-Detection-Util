@@ -122,7 +122,11 @@ def read_annotations(f_path):
 # To divide the dataset into two categories, one is training set and the other is testing set.
 def divide_dataset(file_list, img_dir, train_folder, test_folder, ratio):
     file_number = len(file_list)
-
+    # To remove the existent training and testing folders
+    if os.path.exists(train_folder):
+        shutil.rmtree(train_folder)
+    if os.path.exists(test_folder):
+        shutil.rmtree(test_folder)
     if not os.path.exists(train_folder):
         os.mkdir(train_folder)
     if not os.path.exists(test_folder):
@@ -162,8 +166,8 @@ def main(_):
     anno_list = read_annotations(FLAGS.annotation_file)
     
     # Parameter ratio is optional, if it is not specified, then generate
-        # the TF records directly, otherwise, divide the dataset into training
-        #  and testing subsets first, then generating the TF records.
+    # the TF records directly, otherwise, divide the dataset into training
+    #  and testing subsets first, then generating the TF records.
     if ratio is None:
         whole_writer = tf.python_io.TFRecordWriter(whole_record_output_path)
         for file_name, anno_val in anno_list.items():
