@@ -1,6 +1,8 @@
 import os
 import re
 import io
+import random
+import shutil
 import PIL.Image
 import numpy as np
 import tensorflow as tf
@@ -12,6 +14,8 @@ Usage:
     python gen_tf_records.py --logtostderr \
     --annotation_file="${ANNOTATION_FILE}"
     --image_directory="${IMAGE_DIRECTORY}"
+    [--training_ratio="${TRAINING_RATIO}"]
+    TRAINING_RATIO is a int number between 1 and 100 (including)
 '''
 
 
@@ -19,6 +23,8 @@ flags = tf.app.flags
 flags.DEFINE_string('annotation_file', '','Path to the annotation file')
 flags.DEFINE_string('image_directory', '','Directory of the images')
 flags.DEFINE_string('output_directory','','Directory of TF records')
+flags.DEFINE_string('training_ratio','','To specify the ratio of training dataset,\
+                     the rest of the dataset will be treated as testing set')
 FLAGS = flags.FLAGS
 
 
@@ -54,7 +60,13 @@ def create_tf_example(image_path, anno_val):
     for anno_item in anno_val:
         coordinate_str = anno_item.split(':')[0]
         coordinate_tuple = eval(coordinate_str)
-        class_cate = int(anno_item.split(':')[1].strip(','))
+        class_cate = anno_item.split(':')[1]
+        if class_cate.endswith(','):
+            class_cate = int(class_cate.strip(','))
+        elif class_cate.endswith('.'):
+            class_cate = int(class_cate.strip('.'))
+        else:    
+            class_cate = int(class_cate)
     
 
         xmins.append(coordinate_tuple[0]/width) # List of normalized left x coordinates in bounding box (1 per box)
@@ -86,7 +98,7 @@ def create_tf_example(image_path, anno_val):
 # Reading and processing annotations
 def read_annotations(f_path):
     anno_map = {}
-    print(f_path) # Get the annotation file
+    print(f_path)
     f_read = open(f_path)
     lines = f_read.readlines()
     for line in lines:
@@ -99,29 +111,106 @@ def read_annotations(f_path):
         # drop the last character ';' or '.' in every line
         # [' (212, 209, 238, 270)', '-1, (233, 201, 260, 284)', '-1, (287, 215, 305, 260)', '-1']
         annos_info = annos_info.lstrip()
+        #TODO: To investigate a potential bug following: if the annotation file
+        # does not include an empty line at the bottom, the split of the annotation
+        # may cause an exception.
         annos_info_list = re.compile("(?<!^)\s+(?=[,(])(?!.\s)").split(annos_info)
         anno_map[file_name_from_anno] = annos_info_list
         # print(res for res in anno_map) # This line used for debug
     return anno_map
 
-        
+# To divide the dataset into two categories, one is training set and the other is testing set.
+def divide_dataset(file_list, img_dir, train_folder, test_folder, ratio):
+    file_number = len(file_list)
+
+    if not os.path.exists(train_folder):
+        os.mkdir(train_folder)
+    if not os.path.exists(test_folder):
+        os.mkdir(test_folder)
+    training_number = int(len(file_list) * ratio / 100)
+    for i in range(training_number+1):
+        src_file = os.path.join(img_dir, file_list[i])
+        dst_file = os.path.join(train_folder, file_list[i])
+        if os.path.exists(src_file):
+            shutil.copyfile(src_file, dst_file)
+    for i in range(training_number+1, file_number):
+        src_file = os.path.join(img_dir, file_list[i])
+        dst_file = os.path.join(test_folder, file_list[i])
+        if os.path.exists(src_file):
+            shutil.copyfile(src_file, dst_file)
+    # Returning the tuple consists of training set and testing set
+    return (file_list[0: training_number+1], file_list[training_number+1: file_number])
+    
+    
+    
   # Process the annotation file
 def main(_):
     assert FLAGS.annotation_file, '"Annotation file missing"'
     assert FLAGS.image_directory, '"Image directory missing"'
     FLAGS.output_directory = os.path.abspath(os.path.join(str(FLAGS.image_directory), os.pardir))
-    train_output_path = os.path.join(FLAGS.output_directory, 'train.record')
-    writer = tf.python_io.TFRecordWriter(train_output_path)
-    
-    anno_list = read_annotations(FLAGS.annotation_file)
-    for file_name, anno_val in anno_list.items():
-        img_dir = str(FLAGS.image_directory)
-        img_path = os.path.join(img_dir, file_name)
-        print(img_path)
-        tf_example = create_tf_example(img_path, anno_val)
-        writer.write(tf_example.SerializeToString())
-    writer.close()
+    whole_record_output_path = os.path.join(FLAGS.output_directory, 'whole_train.record')
+    train_record_output_path = os.path.join(FLAGS.output_directory, 'training.record')
+    test_record_output_path = os.path.join(FLAGS.output_directory, 'testing.record')
+    ratio = None
+    file_list = []
+    training_list = []
+    testing_list = []
+    if FLAGS.training_ratio != '':
+        ratio = int(FLAGS.training_ratio)
 
+    img_dir = str(FLAGS.image_directory)
+    anno_list = read_annotations(FLAGS.annotation_file)
+    
+    # Parameter ratio is optional, if it is not specified, then generate
+        # the TF records directly, otherwise, divide the dataset into training
+        #  and testing subsets first, then generating the TF records.
+    if ratio is None:
+        whole_writer = tf.python_io.TFRecordWriter(whole_record_output_path)
+        for file_name, anno_val in anno_list.items():
+            img_path = os.path.join(img_dir, file_name)
+            if os.path.exists(img_path):
+                print(img_path)
+                tf_example = create_tf_example(img_path, anno_val)
+                whole_writer.write(tf_example.SerializeToString())
+        whole_writer.close()
+    else:
+        for file_name, anno_val in anno_list.items():
+            img_path = os.path.join(img_dir, file_name)
+            if os.path.exists(img_path):
+                file_list.append(file_name)
+    
+        print('Total valid images number: ', len(file_list))
+        file_list.sort()
+        random.shuffle(file_list)
+        parent_folder = os.path.dirname(img_dir)
+        training_set = os.path.join(parent_folder, 'training_set')
+        testing_set = os.path.join(parent_folder, 'testing_set')
+        training_list, testing_list = divide_dataset(file_list,
+                                                     img_dir,
+                                                     training_set, 
+                                                     testing_set, 
+                                                     ratio)
+        training_list.sort()
+        testing_list.sort()
+        # To create the TF records for both training and testing dataset
+        train_writer = tf.python_io.TFRecordWriter(train_record_output_path)
+        test_writer = tf.python_io.TFRecordWriter(test_record_output_path)
+
+        for file_name, anno_val in anno_list.items():
+            for train_file in training_list:
+                if file_name == train_file:
+                    train_file_path = os.path.join(training_set, file_name)
+                    if os.path.exists(train_file_path):
+                        tf_example = create_tf_example(train_file_path, anno_val)
+                        train_writer.write(tf_example.SerializeToString())
+            for test_file in testing_list:
+                if file_name == test_file:
+                    test_file_path = os.path.join(testing_set, file_name)
+                    if os.path.exists(test_file_path):
+                        tf_example = create_tf_example(test_file_path, anno_val)
+                        test_writer.write(tf_example.SerializeToString())
+        train_writer.close()
+        test_writer.close()
 
 if __name__ == '__main__':
   tf.app.run()
