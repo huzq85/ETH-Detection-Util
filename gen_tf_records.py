@@ -68,12 +68,30 @@ def create_tf_example(image_path, anno_val):
         else:    
             class_cate = int(class_cate)
     
-
-        xmins.append(coordinate_tuple[0]/width) # List of normalized left x coordinates in bounding box (1 per box)
-        xmaxs.append(coordinate_tuple[2]/width) # List of normalized right x coordinates in bounding box
+        x1 = coordinate_tuple[0]
+        y1 = coordinate_tuple[1]
+        x2 = coordinate_tuple[2]
+        y2 = coordinate_tuple[3]
+        # Validation of the annotations -- To check the boundaries
+        if x1 < 0 or x1 > width or x2 < 0 or x2 > width or \
+            y1 < 0 or y1 > height or y2 < 0 or y2 > height:
+            print('Invalid Annotation: ', coordinate_tuple)
+            continue
+        
+        
+        # Validation of the annotations -- To check the coordinates
+        if x1 > x2:
+            print('Warning: coordinate X need to be swapped!', (x1, x2))
+            x1, x2 = x2, x1
+        if y1 > y2:
+            print('Warning: coordinate Y need to be swapped!', (y1, y2))
+            y1, y2 = y2, y1
+            
+        xmins.append(x1/width) # List of normalized left x coordinates in bounding box (1 per box)
+        xmaxs.append(x2/width) # List of normalized right x coordinates in bounding box
              # (1 per box)
-        ymins.append(coordinate_tuple[1]/height) # List of normalized top y coordinates in bounding box (1 per box)
-        ymaxs.append(coordinate_tuple[3]/height) # List of normalized bottom y coordinates in bounding box
+        ymins.append(y1/height) # List of normalized top y coordinates in bounding box (1 per box)
+        ymaxs.append(y2/height) # List of normalized bottom y coordinates in bounding box
              # (1 per box)
         classes_text.append('Person'.encode('utf8')) # List of string class name of bounding box (1 per box)
         classes.append(class_cate) # List of integer class id of bounding box (1 per box)
