@@ -54,10 +54,6 @@ def main(_):
     NUM_CLASSES = 1
     
     # Load the label map.
-    # Label maps map indices to category names, so that when our convolution
-    # network predicts `5`, we know that this corresponds to `king`.
-    # Here we use internal utility functions, but anything that returns a
-    # dictionary mapping integers to appropriate string labels would be fine
     label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
     categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
     category_index = label_map_util.create_category_index(categories)
@@ -90,11 +86,11 @@ def main(_):
     # Number of objects detected
     num_detections = detection_graph.get_tensor_by_name('num_detections:0')
     
-    # Load image using OpenCV and
-    # expand image dimensions to have shape: [1, None, None, 3]
-    # i.e. a single-column array, where each item in the column has the pixel RGB value
+    # Open a file to store the prediction results
+    predict_file = open(os.path.join(PATH_TO_TEST_SAVE_FOLDER, 'Predict_Result.idl'), 'w')
     for test_img in test_imgs:
         image = cv2.imread(test_img)
+        height, width, channel = image.shape
         image_expanded = np.expand_dims(image, axis=0)
         
         # Perform the actual detection by running the model with the image as input
@@ -113,11 +109,25 @@ def main(_):
             line_thickness=2,
             min_score_thresh=0.80)
         
+        # To save the prediction into a file (Both of the detection boxes and scores)
+        boxes_count = len(boxes[0])
+        # Coordinate order return from boxes: [ymin, xmin, ymax, xmax]
+        for i in range(boxes_count):
+            ymin = boxes[0][i][0] * height
+            xmin = boxes[0][i][1] * width
+            ymax = boxes[0][i][2] * height
+            xmax = boxes[0][i][3] * width
+            score = scores[0][i]
+            if not (ymin==0 and xmin==0 and ymax==0 and xmin==0) and score != 0:
+                predict_res = test_img.split('\\')[-1] + ':' + str((xmin, ymin, xmax, ymax)) + ' Score:' + str(score)
+                predict_res += '\n'
+                predict_file.write(predict_res)
 #        To save the testing image
         img_name = test_img.split('\\')[-1]
         testing_img = os.path.join(PATH_TO_TEST_SAVE_FOLDER, img_name)
         print('Saving test image: ', testing_img)
         cv2.imwrite(testing_img, image)
+    predict_file.close()
     print('Testing Finish!')
 
 if __name__ == '__main__':
