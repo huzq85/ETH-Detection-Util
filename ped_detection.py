@@ -103,7 +103,6 @@ def main(_):
             feed_dict={image_tensor: image_expanded})
         
         # Draw the results of the detection (aka 'visulaize the results')
-        
         vis_util.visualize_boxes_and_labels_on_image_array(
             image,
             np.squeeze(boxes),
@@ -119,6 +118,7 @@ def main(_):
         testing_img = os.path.join(PATH_TO_TEST_SAVE_FOLDER, img_name)
         print('Saving test image: ', testing_img)
         cv2.imwrite(testing_img, image)
+    print('Testing Finish!')
 
 if __name__ == '__main__':
     tf.app.run()
