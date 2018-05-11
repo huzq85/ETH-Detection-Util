@@ -8,7 +8,8 @@ import re
 import json
 
 def convert_anno_file(origi_file, json_file):
-    # Return format: {"img_00285.png": [[480, 457, 515, 529], [637, 435, 676, 536]]}
+    # Original idl format: "left/image_00000026.png": (186, 149, 251, 346):1, (464, 215, 488, 283):1
+    # Return json format: {"img_00285.png": [[480, 457, 515, 529], [637, 435, 676, 536]]}
     
     anno_map = {}
     f_read = open(origi_file)
@@ -46,7 +47,18 @@ def convert_anno_file(origi_file, json_file):
 #    return anno_map
 
 def convert_predict_file(origi_file, json_file):
-    # Return format: {"img_00329.png": {"boxes": [[429, 434, 534, 506], [342, 457, 413, 547], [422, 430, 443, 450], [357, 457, 384, 484], [654, 453, 687, 528], [430, 332, 484, 451], [523, 448, 541, 463], [525, 441, 571, 495], [406, 428, 478, 505], [420, 432, 459, 500], [420, 432, 449, 461], [670, 490, 693, 533], [670, 455, 689, 532], [546, 434, 572, 501]], "scores": [0.0505, 0.0634, 0.0636, 0.0661, 0.0716, 0.1086, 0.1169, 0.1316, 0.1328, 0.2834, 0.2942, 0.3387, 0.965, 0.9891]}}
+    # Original idl format: "left/image_00000026.png": (186, 149, 251, 346):1, (464, 215, 488, 283):1
+    # Return format: {"img_00329.png": 
+    #                   {"boxes": 
+    #                       [
+    #                            [429, 434, 534, 506], 
+    #                            [342, 457, 413, 547], 
+    #                            [422, 430, 443, 450]
+    #                       ], 
+    #                       "scores": 
+    #                       [0.0505, 0.0634, 0.0636]
+    #                   }
+    #                }
     f_file = open(origi_file, 'r')
     lines = f_file.readlines()
     res_map = {}
