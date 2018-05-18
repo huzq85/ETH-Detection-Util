@@ -19,7 +19,7 @@ Usage:
     python ped_detection.py --logtostderr \
     --inference_graph="${INFERENCE_GRAPH}"
     --label_map="${LABEL_MAP}"
-    --test_image_folder="${TRAINING_RATIO}"
+    --test_image_folder="${TEST_IMAGE_FOLDER}"
 '''
 
 flags = tf.app.flags
@@ -107,7 +107,10 @@ def main(_):
             category_index,
             use_normalized_coordinates=True,
             line_thickness=2,
-            min_score_thresh=0.80)
+            min_score_thresh=0.50,
+            skip_scores=True,
+            skip_labels=True
+            )
         
         # To save the prediction into a file (Both of the detection boxes and scores)
         boxes_count = len(boxes[0])
