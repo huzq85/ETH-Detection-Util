@@ -30,9 +30,8 @@ FLAGS = flags.FLAGS
 
 sns.set_style('white')
 sns.set_context('poster')
-    
-COLORS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6','C7','C8','C9','C10',
-          'C1', 'C2', 'C3', 'C4', 'C5', 'C6','C7','C8','C9','C10']
+
+COLORS = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6','C7','C8','C9','C0']
 
 def calc_iou_individual(pred_box, ground_truth_box):
     x1_t, y1_t, x2_t, y2_t = ground_truth_box
@@ -152,8 +151,8 @@ def get_avg_precision_at_iou(ground_truth_boxes, prediction_boxes, iou_threshold
 
     prediction_boxes_pruned = deepcopy(prediction_boxes)
 
-    precisions = []
-    recalls = []
+    Precisions = []
+    Recalls = []
     model_thrs = []
     img_results = {}
     # Loop over model score thresholds and calculate precision, recall
@@ -180,17 +179,17 @@ def get_avg_precision_at_iou(ground_truth_boxes, prediction_boxes, iou_threshold
                 ground_truth_boxes_img, prediction_boxes_pruned[img_id]['boxes'], iou_threshold)
 
         prec, rec = calc_precision_recall(img_results)
-        precisions.append(prec)
-        recalls.append(rec)
+        Precisions.append(prec)
+        Recalls.append(rec)
         model_thrs.append(model_score_thr)
 
-    precisions = np.array(precisions)
-    recalls = np.array(recalls)
+    Precisions = np.array(Precisions)
+    Recalls = np.array(Recalls)
     prec_at_rec = []
     for recall_level in np.linspace(0.0, 1.0, 11):
         try:
-            args = np.argwhere(recalls >= recall_level).flatten()
-            prec = max(precisions[args])
+            args = np.argwhere(Recalls >= recall_level).flatten()
+            prec = max(Precisions[args])
         except ValueError:
             prec = 0.0
         prec_at_rec.append(prec)
@@ -198,13 +197,13 @@ def get_avg_precision_at_iou(ground_truth_boxes, prediction_boxes, iou_threshold
 
     return {
         'avg_prec': avg_prec,
-        'precisions': precisions,
-        'recalls': recalls,
+        'Precisions': Precisions,
+        'Recalls': Recalls,
         'model_thrs': model_thrs}
 
 
 def plot_pr_curve(
-    precisions, recalls, category='Person', label=None, color=None, ax=None):
+    Precisions, Recalls, category='Person', label=None, color=None, ax=None):
     """Simple plotting helper function"""
 
     if ax is None:
@@ -213,9 +212,9 @@ def plot_pr_curve(
 
     if color is None:
         color = COLORS[0]
-    ax.scatter(recalls, precisions, label=label, s=20, color=color)
-    ax.set_xlabel('recall')
-    ax.set_ylabel('precision')
+    ax.scatter(Recalls, Precisions, label=label, s=10, color=color)
+    ax.set_xlabel('Recall')
+    ax.set_ylabel('Precision')
     ax.set_title('Precision-Recall curve for {}'.format(category))
     ax.set_xlim([0.0,1.3])
     ax.set_ylim([0.0,1.2])
@@ -235,7 +234,7 @@ if __name__ == '__main__':
     data = get_avg_precision_at_iou(ground_truth_boxes, prediction_boxes, iou_threshold=iou_threshold)
     end_time = time.time()
     print('Single IoU calculation took {:.4f} secs'.format(end_time - start_time))
-    print('avg precision: {:.4f}'.format(data['avg_prec']))
+    print('Average Precisions: {:.4f}'.format(data['avg_prec']))
 
     start_time = time.time()
     ax = None
@@ -246,17 +245,17 @@ if __name__ == '__main__':
         avg_precs.append(data['avg_prec'])
         iou_thresholds.append(iou_threshold)
 
-        precisions = data['precisions']
-        recalls = data['recalls']
+        Precisions = data['Precisions']
+        Recalls = data['Recalls']
         ax = plot_pr_curve(
-            precisions, recalls, label='{:.2f}'.format(iou_threshold), color=COLORS[idx*2], ax=ax)
+            Precisions, Recalls, label='{:.2f}'.format(iou_threshold), color=COLORS[idx], ax=ax)
 
     avg_precs = [float('{:.4f}'.format(ap)) for ap in avg_precs]
     iou_thresholds = [float('{:.4f}'.format(thr)) for thr in iou_thresholds]
-    print('map: {:.2f}'.format(100*np.mean(avg_precs)))
-    print('avg precs: ', avg_precs)
-    print('iou_thresholds:  ', iou_thresholds)
-    plt.legend(loc='upper right', title='IOU Thr', frameon=True)
+    print('mAP: {:.2f}'.format(100*np.mean(avg_precs)))
+    print('Average Precisions: ', avg_precs)
+    print('IoU Thresholds:  ', iou_thresholds)
+    plt.legend(loc='upper right', title='IoU Threshold', frameon=True)
     for xval in np.linspace(0.0, 1.0, 11):
         plt.vlines(xval, 0.0, 1.1, color='gray', alpha=0.3, linestyles='dashed')
     end_time = time.time()
