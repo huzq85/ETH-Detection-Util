@@ -108,8 +108,6 @@ def main(_):
             use_normalized_coordinates=True,
             line_thickness=2,
             min_score_thresh=0.50,
-            skip_scores=True,
-            skip_labels=True
             )
         
         # To save the prediction into a file (Both of the detection boxes and scores)
