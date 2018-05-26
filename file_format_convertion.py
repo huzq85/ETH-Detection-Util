@@ -6,6 +6,20 @@ Created on Mon May  7 06:35:03 2018
 """
 import re
 import json
+import tensorflow as tf
+
+'''
+Usage:
+    python file_format_convertion.py \
+    --anno_file="{$ANNOTATION_FILE}"
+    --prediction_file="${PREDICT_FILE}"
+'''
+
+flags = tf.app.flags
+flags.DEFINE_string('annotation_file','','To specify the original annotation file(*.idl)')
+flags.DEFINE_string('prediction_file','','To specify a predict file(*.idl)')
+
+FLAGS = flags.FLAGS
 
 def convert_anno_file(origi_file, json_file):
     # Original idl format: "left/image_00000026.png": (186, 149, 251, 346):1, (464, 215, 488, 283):1
@@ -114,17 +128,22 @@ def process_anno_file(anno_file, predict_file, res_file):
     print(res_lines)
     with open(res_file, 'w') as f_writer:
         f_writer.writelines(res_lines)
-    
-    
+        
+        
 
 if __name__ == '__main__':
-    anno_file = r'F:\Test-Train\refined.idl'
-    predict_file = r'F:\Test-Train\Predict_Result.idl'
-    anno_json = r'F:\Test-Train\anno_json.json'
-    pred_json = r'F:\Test-Train\pred_json.json'
-    ground_truth_file = r'F:\Test-Train\gt_anno.idl'
-    process_anno_file(anno_file, predict_file, ground_truth_file)
-    convert_anno_file(ground_truth_file, anno_json)
-    convert_predict_file(predict_file, pred_json)
+    assert FLAGS.annotation_file, 'Annotation(*.idl) file missing'
+    assert FLAGS.predict_file, 'Predict file(*.idl) missing'
+    
+    anno_idl = FLAGS.annotation_file
+    predict_idl = FLAGS.predict_file
+    anno_name = anno_idl.split('\\')[-1].split('.')[0]
+    ground_truth_idl = anno_idl.replace(anno_name, 'gt_file')
+    
+    anno_json = anno_idl.replace('idl','json')
+    pred_json = predict_idl.replace('idl','json')
+    process_anno_file(anno_idl, predict_idl, ground_truth_idl)
+    convert_anno_file(ground_truth_idl, anno_json)
+    convert_predict_file(predict_idl, pred_json)
     print('Convert Done!')
     
