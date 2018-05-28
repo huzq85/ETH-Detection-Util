@@ -10,8 +10,8 @@ import tensorflow as tf
 
 '''
 Usage:
-    python file_format_convertion.py \
-    --anno_file="{$ANNOTATION_FILE}"
+    python file_format_conversion.py \
+    --annotation_file="{$ANNOTATION_FILE}"
     --prediction_file="${PREDICT_FILE}"
 '''
 
@@ -133,10 +133,10 @@ def process_anno_file(anno_file, predict_file, res_file):
 
 if __name__ == '__main__':
     assert FLAGS.annotation_file, 'Annotation(*.idl) file missing'
-    assert FLAGS.predict_file, 'Predict file(*.idl) missing'
+    assert FLAGS.prediction_file, 'Prediction file(*.idl) missing'
     
     anno_idl = FLAGS.annotation_file
-    predict_idl = FLAGS.predict_file
+    predict_idl = FLAGS.prediction_file
     anno_name = anno_idl.split('\\')[-1].split('.')[0]
     ground_truth_idl = anno_idl.replace(anno_name, 'gt_file')
     
