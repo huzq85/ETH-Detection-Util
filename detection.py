@@ -16,7 +16,7 @@ from object_detection.utils import visualization_utils as vis_util
 
 '''
 Usage:
-    python ped_detection.py --logtostderr \
+    python detection.py --logtostderr \
     --inference_graph="${INFERENCE_GRAPH}"
     --label_map="${LABEL_MAP}"
     --test_image_folder="${TEST_IMAGE_FOLDER}"
